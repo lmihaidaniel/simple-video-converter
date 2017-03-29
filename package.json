@@ -1,0 +1,36 @@
+{
+  "name": "simple-video-converter",
+  "author": "lmihaidaniel <lacatusu.mihai.daniel@gmail.com>",
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Simple Video Converter for node based on ffmpeg",
+  "main": "src/index.js",
+  "bin": {
+      "simple-video-converter": "bin/bin",
+      "sfc": "bin/bin"
+  },
+  "preferGlobal": "true",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lmihaidaniel/simple-video-converter.git"
+  },
+  "keywords": [
+    "ffmpeg",
+    "video",
+    "audio",
+    "convert"
+  ],
+  "dependencies" : {
+    "klaw": "latest",
+    "inquirer": "latest",
+    "semafor": "latest"
+  },
+  "bugs": {
+    "url": "https://github.com/lmihaidaniel/simple-video-converter/issues"
+  },
+  "homepage": "https://github.com/lmihaidaniel/simple-video-converter#readme"
+}
