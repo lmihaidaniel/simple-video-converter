@@ -1,5 +1,5 @@
 module.exports = (function(){
-	let deepmerge = function(target, src) {
+	var deepmerge = function(target, src) {
 		if(src){
 		    var array = Array.isArray(src);
 		    var dst = array && [] || {};

@@ -19,7 +19,7 @@ function runConverter(videos, output, settings) {
   });
 }
 
-let validators = {
+var validators = {
   bitrate: function(value) {
     if (value.match(/^((?!(0))\d.*)+k+$/)) return true;
     return "Please enter a valid bitrate number, eg: 192k";
@@ -56,7 +56,7 @@ var chooseSourceFolder = function(){
   ])
   .then(function(answers) {
     console.log(answers);
-    let files = [];
+    var files = [];
     klaw(answers.from)
       .on("data", function(item) {
         var ext = path.extname(item.path);
@@ -154,7 +154,7 @@ var chooseSettings = function(files){
     defaults.video.maxrate = maxrate + "k";
     defaults.video.bufsize = bufsize + "k";
 
-    let videos = [];
+    var videos = [];
     files.forEach(function(item){
       var ext = path.extname(item);
       var out = answers.output + path.sep + path.basename(item, ext) + ".mp4";
