@@ -1,7 +1,7 @@
 {
   "name": "simple-video-converter",
   "author": "lmihaidaniel <lacatusu.mihai.daniel@gmail.com>",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "description": "Simple Video Converter for node based on ffmpeg",
   "main": "src/index.js",
@@ -25,7 +25,6 @@
     "convert"
   ],
   "dependencies" : {
-    "klaw": "latest",
     "inquirer": "latest",
     "inquirer-directory": "latest",
     "semafor": "latest"

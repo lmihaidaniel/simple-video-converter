@@ -3,7 +3,6 @@ var inquirer = require("inquirer"),
   deepmerge = require("./src/deepmerge"),
   defaults = require("./src/defaults"),
   converter = require("./src/index.js"),
-  klaw = require("klaw"),
   fs = require("fs"),
   path = require("path");
 
@@ -55,23 +54,23 @@ var chooseSourceFolder = function(){
     }
   ])
   .then(function(answers) {
-    console.log(answers);
-    var files = [];
-    klaw(answers.from)
-      .on("data", function(item) {
-        var ext = path.extname(item.path);
-        if (defaults.extensions.indexOf(ext) > -1) {
-          files.push(item.path);
-        }
-      })
-      .on("end", function() {
-        if(files.length>0) {
-          chooseSourceFiles(files);
-        }else{
-          log.fail('No supported media files found');
-          chooseSourceFolder();
-        }
-      });
+    var dir = answers.from + path.sep;
+    var files = fs.readdirSync(dir);
+    var filelist=[];
+    
+    files.forEach(function(file) {
+      var filePath = dir + file;
+      var ext = path.extname(file);
+      if (fs.statSync(filePath).isFile()) {
+        if (defaults.extensions.indexOf(ext) > -1) filelist.push(filePath);
+      }
+    });
+    if(filelist.length>0) {
+      chooseSourceFiles(filelist);
+    }else{
+      log.fail('No supported media files found');
+      chooseSourceFolder();
+    }
   });
 }
 
