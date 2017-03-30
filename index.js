@@ -9,25 +9,14 @@ var inquirer = require("inquirer"),
 
 var log = semafor();
 
-function runConverter(input, output, settings) {
+function runConverter(videos, output, settings) {
   if (!fs.existsSync(output)) {
     fs.mkdirSync(output);
   }
-  var videos = [];
-  klaw(input)
-    .on("data", function(item) {
-      var ext = path.extname(item.path);
-      if (settings.extensions.indexOf(ext) > -1) {
-        var out = output + path.sep + path.basename(item.path, ext) + ".mp4";
-        videos.push([item.path, path.normalize(out)]);
-      }
-    })
-    .on("end", function() {
-      converter.multi(settings, videos, function() {
-        log.ok("Done");
-        process.exit(1);
-      });
-    });
+  converter.multi(settings, videos, function() {
+    log.ok("Done");
+    process.exit(1);
+  });
 }
 
 let validators = {
@@ -52,19 +41,60 @@ var settings = {
   bitrate: "1024k"
 };
 
-log.log('simple video converter');
-// Start the cli.
-inquirer
+inquirer.registerPrompt("directory", require("inquirer-directory"));
+
+
+var chooseSourceFolder = function(){
+  inquirer
   .prompt([
     {
-      type: "input",
-      name: "source",
-      message: "Select media files source directory:",
-      default: settings.source,
-      filter: function(val) {
-        return path.normalize(val);
+      type: "directory",
+      name: "from",
+      message: "Select media files folder source?",
+      basePath: settings.source
+    }
+  ])
+  .then(function(answers) {
+    console.log(answers);
+    let files = [];
+    klaw(answers.from)
+      .on("data", function(item) {
+        var ext = path.extname(item.path);
+        if (defaults.extensions.indexOf(ext) > -1) {
+          files.push(item.path);
+        }
+      })
+      .on("end", function() {
+        if(files.length>0) {
+          chooseSourceFiles(files);
+        }else{
+          log.fail('No supported media files found');
+          chooseSourceFolder();
+        }
+      });
+  });
+}
+
+var chooseSourceFiles = function(files){
+  inquirer.prompt({
+    type: 'checkbox',
+    name: 'files',
+    message: 'Select the files to convert',
+    choices: files,
+    validate: function (answer) {
+      if (answer.length < 1) {
+        return 'You must choose at least one media file.';
       }
-    },
+      return true;
+    }
+  }).then(function (answers) {
+    chooseSettings(answers.files);
+  });
+}
+
+var chooseSettings = function(files){
+  inquirer
+  .prompt([
     {
       type: "input",
       name: "output",
@@ -116,17 +146,23 @@ inquirer
     // Get the options and defaults.
     var options = deepmerge(settings, answers);
 
-    
-    
-    var maxrate = Math.ceil(
-      8 * parseFloat(options.bitrate) / 10 - 128
-    );
+    var maxrate = Math.ceil(8 * parseFloat(options.bitrate) / 10 - 128);
     var bufsize = Math.ceil(4 * maxrate / 3);
 
     defaults.video.resolution = options.resolution;
     defaults.video.quality = options.quality;
-    defaults.video.maxrate = maxrate+"k";
-    defaults.video.bufsize = bufsize+"k";
+    defaults.video.maxrate = maxrate + "k";
+    defaults.video.bufsize = bufsize + "k";
 
-    runConverter(options.source, options.output, defaults);
+    let videos = [];
+    files.forEach(function(item){
+      var ext = path.extname(item);
+      var out = answers.output + path.sep + path.basename(item, ext) + ".mp4";
+      videos.push([item, path.normalize(out)]);
+    })
+    
+    runConverter(videos, answers.output, defaults);
   });
+}
+
+chooseSourceFolder();
