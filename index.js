@@ -54,7 +54,7 @@ var chooseSourceFolder = function(){
     }
   ])
   .then(function(answers) {
-    var dir = answers.from + path.sep;
+    var dir = (answers.from || settings.source) + path.sep;
     var files = fs.readdirSync(dir);
     var filelist=[];
     
