@@ -9,9 +9,9 @@ var inquirer = require("inquirer"),
 var log = semafor();
 
 function runConverter(videos, output, settings) {
-  if (!fs.existsSync(output)) {
-    fs.mkdirSync(output);
-  }
+  // if (!fs.existsSync(output)) {
+  //   fs.mkdirSync(output);
+  // }
   converter.multi(settings, videos, function() {
     log.ok("Done");
     process.exit(1);
@@ -43,7 +43,10 @@ var settings = {
 inquirer.registerPrompt("directory", require("inquirer-directory"));
 
 
-var chooseSourceFolder = function(){
+var chooseSourceFolder = function(type){
+  if(type=="--concat"){
+    log.warn('Make sure that the videos selected have the same resolution before merging them');
+  }
   inquirer
   .prompt([
     {
@@ -153,15 +156,24 @@ var chooseSettings = function(files){
     defaults.video.maxrate = maxrate + "k";
     defaults.video.bufsize = bufsize + "k";
 
-    var videos = [];
-    files.forEach(function(item){
-      var ext = path.extname(item);
-      var out = answers.output + path.sep + path.basename(item, ext) + ".mp4";
-      videos.push([item, path.normalize(out)]);
-    })
     
+    var videos = [];
+    if(type!=="--concat"){
+      files.forEach(function(item){
+        var ext = path.extname(item);
+        var out = answers.output + path.sep + path.basename(item, ext) + ".mp4";
+        videos.push([item, path.normalize(out)]);
+      })
+    }else{
+      videos = [[[],answers.output+path.sep+"concat.mp4"]];
+      files.forEach(function(item){
+        videos[0][0].push(item);
+      })
+    }
     runConverter(videos, answers.output, defaults);
   });
 }
 
-chooseSourceFolder();
+var args = process.argv.slice(2);
+
+chooseSourceFolder(args[0]);

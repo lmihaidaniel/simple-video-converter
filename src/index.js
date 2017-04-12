@@ -2,9 +2,10 @@ var util = require("util"),
   semafor = require("semafor"),
   deepmerge = require("./deepmerge"),
   defaults = require("./defaults"),
-  spawn = require("child_process").spawn;
+  ffmpeg = require("fluent-ffmpeg");
 
 var log = semafor();
+
 // Log and close the process.
 function error(msg) {
   log.log("");
@@ -12,66 +13,61 @@ function error(msg) {
   process.exit(1);
 }
 
-var noOp = function() {};
+function spawnFfmpeg(source, config, output, onEnd) {
+  var timemark = null;
+  var transcoder = ffmpeg();
+  
+  transcoder
+    .videoCodec(config.video.codec)
+    .format(config.video.format)
+    .addOption("-crf", config.video.quality)
+    .size(config.video.resolution)
+    .addOption('-bufsize', config.video.bufsize)
+    .videoBitrate(config.video.maxrate)
+    .addOption("-profile:v", config.video.profile)
+    .addOption("-level", config.video.level)
+    .addOption("-flags", "+cgop")
+    .addOption("-pix_fmt", "yuv420p")
+    .audioCodec(config.audio.codec)
+    .audioBitrate(config.audio.bitrate)
+    .audioFrequency(config.audio.rate)
+    .audioChannels(2)
+    .audioQuality(5)
+    .addOption("-movflags", "faststart")
 
-function spawnFfmpeg(exitCallback, args, source, output) {
-  var ffmpeg = spawn("ffmpeg", args);
-  log.log('\n');
-  log.warn("Converting " + source);
+  transcoder
+    .on("start", function(){
+      log.ok("Starting processing: " + source)
+    })
+    .on("end", function() {
+      log.ok("Finished processing: " + source);
+      onEnd();
+    })
+    .on("progress", function(info) {
+      log.warn("Progress: " + info.timemark + "... " + Math.round(info.percent||0) + "%");
+    })
+    .on("error", function(err) {
+      log.fail("Cannot process video: " + err.message);
+    });
 
-  ffmpeg.on("exit", exitCallback);
-  ffmpeg.stderr.on("data", function(data) {
-      if(data.indexOf('frame=') == 0) log.ok(data);
-  });
-  return ffmpeg;
+  if (typeof source == "object") {
+    source.map(function(item) {
+      transcoder.mergeAdd(item)
+    });
+    transcoder.mergeToFile(output);
+  } else {
+    transcoder.input(source);
+    transcoder.output(output).run();
+  }
 }
 
 var converter = function(settings) {
   var config = deepmerge(defaults, settings);
   return function(_in, _out, cb) {
-    spawnFfmpeg(
-      cb || noOp,
-      [
-        "-y",
-        "-i",
-        "" + _in + "",
-        "-codec:v",
-        "" + config.video.codec + "",
-        "-f",
-        "" + config.video.format + "",
-        "-profile:v",
-        "" + config.video.profile + "",
-        "-level",
-        "" + config.video.level + "",
-        "-crf",
-        "" + config.video.quality + "",
-        "-bf",
-        "" + config.video.bufsize + "",
-        "-maxrate",
-        "" + config.video.maxrate + "",
-        "-s",
-        "" + config.video.resolution + "",
-        "-flags",
-        "+cgop",
-        "-pix_fmt",
-        "yuv420p",
-        "-codec:a",
-        "" + config.audio.codec + "",
-        "-strict",
-        "-2",
-        "-b:a",
-        "" + config.audio.bitrate + "",
-        "-r:a",
-        "" + config.audio.rate + "",
-        "-movflags",
-        "faststart",
-        "" + _out + ""
-      ],
-      _in,
-      _out
-    );
+    spawnFfmpeg(_in, config, _out, cb);
   };
 };
+
 var multiConverter = function(settings, videos, cb_end) {
   var runner = function(i) {
     if (i === videos.length) {
