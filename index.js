@@ -3,7 +3,7 @@ var inquirer = require("inquirer"),
   deepmerge = require("./src/deepmerge"),
   defaults = require("./src/defaults"),
   converter = require("./src/index.js"),
-  fs = require("fs"),
+  fs = require("fs-promise"),
   path = require("path");
 
 var log = semafor();
@@ -12,12 +12,11 @@ var args = process.argv.slice(2);
 var type = args[0];
 
 function runConverter(videos, output, settings) {
-  // if (!fs.existsSync(output)) {
-  //   fs.mkdirSync(output);
-  // }
-  converter.multi(settings, videos, function() {
-    log.ok("Done");
-    process.exit(1);
+  fs.ensureDir(path.dirname(output)).then(function(){
+    converter.multi(settings, videos, function() {
+      log.ok("Done");
+      process.exit(1);
+    });
   });
 }
 
