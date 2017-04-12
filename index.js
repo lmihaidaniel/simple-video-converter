@@ -8,6 +8,9 @@ var inquirer = require("inquirer"),
 
 var log = semafor();
 
+var args = process.argv.slice(2);
+var type = args[0];
+
 function runConverter(videos, output, settings) {
   // if (!fs.existsSync(output)) {
   //   fs.mkdirSync(output);
@@ -43,7 +46,7 @@ var settings = {
 inquirer.registerPrompt("directory", require("inquirer-directory"));
 
 
-var chooseSourceFolder = function(type){
+var chooseSourceFolder = function(){
   if(type=="--concat"){
     log.warn('Make sure that the videos selected have the same resolution before merging them');
   }
@@ -174,6 +177,4 @@ var chooseSettings = function(files){
   });
 }
 
-var args = process.argv.slice(2);
-
-chooseSourceFolder(args[0]);
+chooseSourceFolder();
