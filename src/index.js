@@ -18,24 +18,6 @@ function spawnFfmpeg(source, config, output, onEnd) {
   var transcoder = ffmpeg();
   
   transcoder
-    .videoCodec(config.video.codec)
-    .format(config.video.format)
-    .addOption("-crf", config.video.quality)
-    .size(config.video.resolution)
-    .addOption('-bufsize', config.video.bufsize)
-    .videoBitrate(config.video.maxrate)
-    .addOption("-profile:v", config.video.profile)
-    .addOption("-level", config.video.level)
-    .addOption("-flags", "+cgop")
-    .addOption("-pix_fmt", "yuv420p")
-    .audioCodec(config.audio.codec)
-    .audioBitrate(config.audio.bitrate)
-    .audioFrequency(config.audio.rate)
-    .audioChannels(2)
-    .audioQuality(5)
-    .addOption("-movflags", "faststart")
-
-  transcoder
     .on("start", function(){
       log.ok("Starting processing: " + source)
     })
@@ -54,8 +36,28 @@ function spawnFfmpeg(source, config, output, onEnd) {
     source.map(function(item) {
       transcoder.mergeAdd(item)
     });
+    transcoder.addOption("-movflags", "faststart")
     transcoder.mergeToFile(output);
   } else {
+
+  transcoder
+    .videoCodec(config.video.codec)
+    .format(config.video.format)
+    .addOption("-crf", config.video.quality)
+    .size(config.video.resolution)
+    .addOption('-bufsize', config.video.bufsize)
+    .videoBitrate(config.video.maxrate)
+    .addOption("-profile:v", config.video.profile)
+    .addOption("-level", config.video.level)
+    .addOption("-flags", "+cgop")
+    .addOption("-pix_fmt", "yuv420p")
+    .audioCodec(config.audio.codec)
+    .audioBitrate(config.audio.bitrate)
+    .audioFrequency(config.audio.rate)
+    .audioChannels(2)
+    .audioQuality(5)
+    .addOption("-movflags", "faststart")
+  
     transcoder.input(source);
     transcoder.output(output).run();
   }

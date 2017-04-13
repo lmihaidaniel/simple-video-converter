@@ -1,7 +1,7 @@
 {
   "name": "simple-video-converter",
   "author": "lmihaidaniel <lacatusu.mihai.daniel@gmail.com>",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "description": "Simple Video Converter for node based on ffmpeg",
   "main": "src/index.js",
