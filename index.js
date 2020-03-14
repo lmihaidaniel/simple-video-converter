@@ -12,8 +12,8 @@ var args = process.argv.slice(2);
 var type = args[0];
 
 function runConverter(videos, output, settings) {
-  return fs.ensureDir(output).then(function() {
-    converter.multi(settings, videos, function() {
+  return fs.ensureDir(output).then(function () {
+    converter.multi(settings, videos, function () {
       log.ok("Done");
       process.exit(1);
     });
@@ -21,15 +21,15 @@ function runConverter(videos, output, settings) {
 }
 
 var validators = {
-  bitrate: function(value) {
+  bitrate: function (value) {
     if (value.match(/^((?!(0))\d.*)+k+$/)) return true;
     return "Please enter a valid bitrate number, eg: 192k";
   },
-  resolution: function(value) {
+  resolution: function (value) {
     if (value.match(/^((?!(0))\d.*)+x+((?!(0))[0-9]\d*)$/)) return true;
     return "Please enter a valid resolution, eg: 1280x720";
   },
-  number: function(value) {
+  number: function (value) {
     return !isNaN(parseFloat(value)) || "Please enter a number";
   }
 };
@@ -44,7 +44,7 @@ var settings = {
 
 inquirer.registerPrompt("directory", require("inquirer-directory"));
 
-var chooseSourceFolder = function() {
+var chooseSourceFolder = function () {
   if (type == "--concat") {
     log.warn(
       "Make sure that the videos selected have the same resolution before merging them"
@@ -59,12 +59,12 @@ var chooseSourceFolder = function() {
         basePath: settings.source
       }
     ])
-    .then(function(answers) {
+    .then(function (answers) {
       var dir = (answers.from || settings.source) + path.sep;
       var files = fs.readdirSync(dir);
       var filelist = [];
 
-      files.forEach(function(file) {
+      files.forEach(function (file) {
         var filePath = dir + file;
         var ext = path.extname(file);
         if (fs.statSync(filePath).isFile()) {
@@ -80,26 +80,26 @@ var chooseSourceFolder = function() {
     });
 };
 
-var chooseSourceFiles = function(files) {
+var chooseSourceFiles = function (files) {
   inquirer
     .prompt({
       type: "checkbox",
       name: "files",
       message: "Select the files to convert",
       choices: files,
-      validate: function(answer) {
+      validate: function (answer) {
         if (answer.length < 1) {
           return "You must choose at least one media file.";
         }
         return true;
       }
     })
-    .then(function(answers) {
+    .then(function (answers) {
       chooseSettings(answers.files);
     });
 };
 
-var chooseSettings = function(files) {
+var chooseSettings = function (files) {
   inquirer
     .prompt([
       {
@@ -107,7 +107,7 @@ var chooseSettings = function(files) {
         name: "output",
         message: "Select output directory:",
         default: settings.output,
-        filter: function(val) {
+        filter: function (val) {
           return path.normalize(val);
         }
       },
@@ -122,7 +122,7 @@ var chooseSettings = function(files) {
         name: "resolution",
         message: "Video resolution:",
         default: settings.resolution,
-        when: function(answers) {
+        when: function (answers) {
           return !answers.defaults;
         },
         validate: validators.resolution
@@ -132,7 +132,7 @@ var chooseSettings = function(files) {
         name: "quality",
         message: "Video constant quality [Range 18-31, lowest for better quality]:",
         default: settings.quality,
-        when: function(answers) {
+        when: function (answers) {
           return !answers.defaults;
         },
         filter: Number,
@@ -143,13 +143,13 @@ var chooseSettings = function(files) {
         name: "bitrate",
         message: "Video max bitrate desired:",
         default: settings.bitrate,
-        when: function(answers) {
+        when: function (answers) {
           return !answers.defaults;
         },
         validate: validators.bitrate
       }
     ])
-    .then(function(answers) {
+    .then(function (answers) {
       // Get the options and defaults.
       var options = deepmerge(settings, answers);
 
@@ -163,7 +163,7 @@ var chooseSettings = function(files) {
 
       var videos = [];
       if (type !== "--concat") {
-        files.forEach(function(item) {
+        files.forEach(function (item) {
           var ext = path.extname(item);
           var out = answers.output +
             path.sep +
@@ -173,7 +173,7 @@ var chooseSettings = function(files) {
         });
       } else {
         videos = [[[], answers.output + path.sep + "concat.mp4"]];
-        files.forEach(function(item) {
+        files.forEach(function (item) {
           videos[0][0].push(item);
         });
       }

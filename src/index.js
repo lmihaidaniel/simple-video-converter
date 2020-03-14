@@ -1,91 +1,59 @@
-var util = require("util"),
-  semafor = require("semafor"),
-  deepmerge = require("./deepmerge"),
-  defaults = require("./defaults"),
-  ffmpeg = require("fluent-ffmpeg");
+import { log, mergeDeep } from './utils';
+import defaultConfig from './config';
+import ffMpeg from 'ffmpeg';
 
-var log = semafor();
+const spawnFfmpeg = (input, output, config = {}) => new Promise((resolve, reject) => {
+  const transcoder = ffMpeg();
+  config = mergeDeep(defaultConfig, config);
 
-// Log and close the process.
-function error(msg) {
-  log.log("");
-  log.fail(msg.toString());
-  process.exit(1);
-}
-
-function spawnFfmpeg(source, config, output, onEnd) {
-  var timemark = null;
-  var transcoder = ffmpeg();
-  
   transcoder
-    .on("start", function(){
-      log.ok("Starting processing: " + source)
+    .on('start', () => log.ok(`Starting processing: ${input}`))
+    .on('end', () => {
+      log.ok(`Finished processing: ${input}`);
+      resolve();
     })
-    .on("end", function() {
-      log.ok("Finished processing: " + source);
-      onEnd();
+    .on('progress', ({ timemark, percent = 0 }) => log.warn(`Progress: ${timemark} ... ${Math.round(percent)}%`))
+    .on('error', (err) => {
+      log.fail(`Cannot process video: ${err.message}`);
+      reject(err);
     })
-    .on("progress", function(info) {
-      log.warn("Progress: " + info.timemark + "... " + Math.round(info.percent||0) + "%");
-    })
-    .on("error", function(err) {
-      log.fail("Cannot process video: " + err.message);
-    });
+    ;
 
-  if (typeof source == "object") {
-    source.map(function(item) {
-      transcoder.mergeAdd(item)
-    });
-    transcoder.addOption("-movflags", "faststart")
+  if (Array.isArray(input) && input.length) {
+    input.map(item => transcoder.mergeAdd(item));
+    transcoder.addOption('-movflags', 'faststart');
     transcoder.mergeToFile(output);
   } else {
+    transcoder
+      .videoCodec(config.video.codec)
+      .format(config.video.format)
+      .addOption('-crf', config.video.quality)
+      .size(config.video.resolution)
+      .addOption('-bufsize', config.video.bufsize)
+      .videoBitrate(config.video.maxrate)
+      .addOption('-profile:v', config.video.profile)
+      .addOption('-level', config.video.level)
+      .addOption('-flags', '+cgop')
+      .addOption('-pix_fmt', 'yuv420p')
+      .audioCodec(config.audio.codec)
+      .audioBitrate(config.audio.bitrate)
+      .audioFrequency(config.audio.rate)
+      .audioChannels(2)
+      .audioQuality(5)
+      .addOption('-movflags', 'faststart');
 
-  transcoder
-    .videoCodec(config.video.codec)
-    .format(config.video.format)
-    .addOption("-crf", config.video.quality)
-    .size(config.video.resolution)
-    .addOption('-bufsize', config.video.bufsize)
-    .videoBitrate(config.video.maxrate)
-    .addOption("-profile:v", config.video.profile)
-    .addOption("-level", config.video.level)
-    .addOption("-flags", "+cgop")
-    .addOption("-pix_fmt", "yuv420p")
-    .audioCodec(config.audio.codec)
-    .audioBitrate(config.audio.bitrate)
-    .audioFrequency(config.audio.rate)
-    .audioChannels(2)
-    .audioQuality(5)
-    .addOption("-movflags", "faststart")
-  
-    transcoder.input(source);
+    transcoder.input(input);
     transcoder.output(output).run();
   }
-}
+});
 
-var converter = function(settings) {
-  var config = deepmerge(defaults, settings);
-  return function(_in, _out, cb) {
-    spawnFfmpeg(_in, config, _out, cb);
-  };
-};
+export const converter = config => (input, output) => spawnFfmpeg(input, output, config);
 
-var multiConverter = function(settings, videos, cb_end) {
-  var runner = function(i) {
-    if (i === videos.length) {
-      cb_end();
-      return;
-    }
-    converter(settings)(videos[i][0], videos[i][1], function() {
-      runner(i + 1);
-    });
-  };
-  if (videos.length > 0) {
-    runner(0);
-  }
-};
+export const multiConverter = (videoList, config) => {
+  const runner = converter(config);
 
-module.exports = {
-  single: converter,
-  multi: multiConverter
+  videoList.reduce(async (previousConversion, { input, output }) => {
+    await previousConversion;
+    return runner(input, output);
+  }, Promise.resolve());
 };
